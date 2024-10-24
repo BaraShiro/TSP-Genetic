@@ -1,4 +1,6 @@
+using System;
 using System.Linq;
+using UnityEngine;
 
 public class Genetic
 {
@@ -7,6 +9,7 @@ public class Genetic
     private int NumberOfChromosomes { get; set; }
     private int NumberOfCities { get; set; }
     private int ChromosomeLength => NumberOfCities - 1;
+    private int NumberOfParents => Mathf.RoundToInt(NumberOfChromosomes * 0.25f);
 
     private int[][] GenePool { get; set; }
     private City[] Cities { get; set; }
@@ -41,6 +44,55 @@ public class Genetic
             scores[i] = score;
             if (score < bestScoreAtStart) bestScoreAtStart = score;
         }
+    }
+
+    private void SelectParents()
+    {
+        int[] sortedChromosomes = Enumerable.Range(0, NumberOfChromosomes).ToArray();
+        Array.Sort(sortedChromosomes, (x, y) => scores[x].CompareTo(scores[y]));
+
+        for (int i = 0; i < NumberOfParents; i++)
+        {
+            SwapChromosomes(i, sortedChromosomes[i]);
+        }
+    }
+
+    private void SwapChromosomes(int first, int second)
+    {
+        if (first == second) return; // Same index, no need to swap
+
+        (GenePool[first], GenePool[second]) = (GenePool[second], GenePool[first]);
+    }
+
+    public string CitiesToString()
+    {
+        string result = "Cities: [";
+
+        for (int i = 0; i < Cities.Length; i++)
+        {
+            result += Cities[i].ToString();
+            if (i != Cities.Length - 1)
+            {
+                result += ", ";
+            }
+            else
+            {
+                result += "]";
+            }
+        }
+
+        return result;
+    }
+
+    public string GenePoolToString()
+    {
+        return GenePool.Aggregate("", (current, chromosome) => current + (chromosome.ToPrettyString() + " "));
+    }
+
+    public string GoalTest()
+    {
+        InitializeGenePool();
+        return $"{bestScoreAtStart}";
     }
 
     /// <summary>
