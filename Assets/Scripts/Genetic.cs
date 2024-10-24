@@ -4,7 +4,7 @@ public class Genetic
     private int NumberOfCities { get; set; }
     private int ChromosomeLength => NumberOfCities - 1;
 
-    private int[,] GenePool { get; set; }
+    private int[][] GenePool { get; set; }
     private City[] Cities { get; set; }
 
     public Genetic(int numberOfChromosomes, int numberOfCities)
@@ -12,7 +12,7 @@ public class Genetic
         NumberOfChromosomes = numberOfChromosomes;
         NumberOfCities = numberOfCities;
 
-        GenePool = new int[NumberOfChromosomes, ChromosomeLength];
+        GenePool = new int[NumberOfChromosomes][];
         Cities = new City[NumberOfCities];
         Cities.FillWithNew();
     }
@@ -22,7 +22,7 @@ public class Genetic
         NumberOfChromosomes = numberOfChromosomes;
         NumberOfCities = cities.Length;
 
-        GenePool = new int[NumberOfChromosomes, ChromosomeLength];
+        GenePool = new int[NumberOfChromosomes][];
         Cities = cities;
     }
 
