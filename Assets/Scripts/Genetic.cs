@@ -1,5 +1,9 @@
+using System.Linq;
+
 public class Genetic
 {
+    private float bestScoreAtStart = float.PositiveInfinity;
+    private float[] scores;
     private int NumberOfChromosomes { get; set; }
     private int NumberOfCities { get; set; }
     private int ChromosomeLength => NumberOfCities - 1;
@@ -24,6 +28,19 @@ public class Genetic
 
         GenePool = new int[NumberOfChromosomes][];
         Cities = cities;
+    }
+    private void InitializeGenePool()
+    {
+        scores = new float[NumberOfChromosomes];
+        for (int i = 0; i < NumberOfChromosomes; i++)
+        {
+            GenePool[i] = Enumerable.Range(0, ChromosomeLength).ToArray();
+            GenePool[i].Shuffle();
+
+            float score = GoalFunction(GenePool[i]);
+            scores[i] = score;
+            if (score < bestScoreAtStart) bestScoreAtStart = score;
+        }
     }
 
     /// <summary>
