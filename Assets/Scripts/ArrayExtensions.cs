@@ -1,4 +1,5 @@
 using System;
+using Random = UnityEngine.Random;
 
 public static class ArrayExtensions
 {
@@ -22,11 +23,10 @@ public static class ArrayExtensions
     /// <seealso href="https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle">Fisher–Yates shuffle on Wikipedia</seealso>
     public static void Shuffle<T>(this T[] array)
     {
-        Random random = new Random();
         int n = array.Length;
         for (int i = 0; i < n; i++)
         {
-            int j = random.Next(i, n);
+            int j = Random.Range(i, n);
             (array[i], array[j]) = (array[j], array[i]);
         }
     }
