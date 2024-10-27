@@ -58,6 +58,29 @@ public class Genetic
         }
     }
 
+    private bool CheckForIdenticalParents()
+    {
+        // Look for identical scores to find identical parents
+        for (int i = 0; i < NumberOfParents - 1; i++)
+        {
+            float firstScore = GoalFunction(GenePool[i]);
+
+            for (int j = i + 1; j < NumberOfParents; j++)
+            {
+                float secondScore = GoalFunction(GenePool[j]);
+
+                // Identical score means identical parents
+                if (Mathf.Approximately(firstScore, secondScore)) // Approximate to compensate for float inaccuracy
+                {
+                    Debug.LogWarning($"Identical parents found. Starting over...");
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private void ProduceChildren()
     {
         int parentIndex = 0;
