@@ -5,6 +5,9 @@ using UnityEngine;
 
 public class Genetic
 {
+    private const float PercentageToStopAt = 50f;
+    private const int GenerationsWithoutProgressToStopAt = 5;
+
     private float bestScoreAtStart = float.PositiveInfinity;
     private float bestScoreThisGeneration = float.PositiveInfinity;
     private float[] scores;
@@ -34,6 +37,41 @@ public class Genetic
         GenePool = new int[NumberOfChromosomes][];
         Cities = cities;
     }
+
+    public void Solve()
+    {
+        bool identicalParents = true;
+        while (identicalParents)
+        {
+            InitializeGenePool();
+            SelectParents();
+            identicalParents = CheckForIdenticalParents();
+        }
+
+        float percentageOfStartScore = float.PositiveInfinity;
+        int generation = 1;
+        int generationWithoutProgress = 0;
+        float lastGenerationsScore = float.PositiveInfinity;
+        while (percentageOfStartScore >= PercentageToStopAt)
+        {
+            ProduceChildren();
+            MutateChildren();
+            SelectNewParents();
+
+            percentageOfStartScore = 100 * (bestScoreThisGeneration / bestScoreAtStart);
+            Debug.Log($"Generation: {generation}, Best score this generation: {bestScoreThisGeneration} ({percentageOfStartScore:000.00}%)");
+            if (Mathf.Approximately(lastGenerationsScore, bestScoreThisGeneration)) generationWithoutProgress++;
+            if (generationWithoutProgress >= GenerationsWithoutProgressToStopAt)
+            {
+                Debug.Log($"No progress made in {GenerationsWithoutProgressToStopAt} generations, giving up.");
+                break;
+            }
+
+            generation++;
+            lastGenerationsScore = bestScoreThisGeneration;
+        }
+    }
+
     private void InitializeGenePool()
     {
         scores = new float[NumberOfChromosomes];
@@ -46,6 +84,7 @@ public class Genetic
             scores[i] = score;
             if (score < bestScoreAtStart) bestScoreAtStart = score;
         }
+        Debug.Log($"Best score at start: {bestScoreAtStart}");
     }
 
     private void CalculateScores()
@@ -56,18 +95,15 @@ public class Genetic
             scores[i] = score;
             if (score < bestScoreThisGeneration) bestScoreThisGeneration = score;
         }
-        Debug.Log($"Best score this generation: {bestScoreThisGeneration}");
-    }
-
-    private float CalculateGenerationProportionalScore()
-    {
-        return 100 * (bestScoreThisGeneration / bestScoreAtStart);
     }
 
     private void SelectParents()
     {
         int[] sortedChromosomes = Enumerable.Range(0, NumberOfChromosomes).ToArray();
-        Array.Sort(sortedChromosomes, (x, y) => scores[x].CompareTo(scores[y]));
+        Array.Sort(sortedChromosomes, (a, b) => scores[a].CompareTo(scores[b]));
+
+        Debug.Log($"Number of parents: {NumberOfParents}");
+        Debug.Log($"GenePool before: {GenePoolToString()}");
 
         for (int i = 0; i < NumberOfParents; i++)
         {
@@ -379,51 +415,4 @@ public class Genetic
 
         return sum;
     }
-
-
-
-    // (5) Move the P best chromosomes (also called parents), to the top of mGP, e.g., m = 0 ... P-1,
-    // but make sure that no two parents have the same GF value (and thus, identical chromosomes),
-    // although it is mathematically highly improbable that two parents are identical at this stage,
-    // unless M >> N (M is a number much larger than N). Nevertheless, if two parents are identical,
-    // the simplest solution (disregarding optimization) at this stage is to repeat steps (3)-(5),
-    // using new random values until all parents are found to be unique.
-
-
-    //(6) Fill, using alternation, the space allocated for the children (i.e., m = P ... M-1)
-    //in mGP with copies of the parents. As an example, mGP, in a case with M = 7, N = 6, and P = 2:
-
-    // m = 0: 0 4 2 3 1 --- parent 1
-    // m = 1: 1 2 3 4 0 --- parent 2
-    // m = 2: 0 4 2 3 1 --- child 1 (copy of parent 1)
-    // m = 3: 1 2 3 4 0 --- child 2 (copy of parent 2)
-    // m = 4: 0 4 2 3 1 --- child 3 (copy of parent 1)
-    // m = 5: 1 2 3 4 0 --- child 4 (copy of parent 2)
-    // m = 6: 0 4 2 3 1 --- child 5 (copy of parent 1)
-
-
-    // (7) Apply MPC or mutation to all children, until all chromosomes m = P ... M-1,
-    // have been altered. As an example with M > 9 and P = 2:
-
-    // No change: m = 0-1 (parents are left intact)
-    // MPC: m = 2-3
-    // MPC: m = 4-5
-    // Mutation: m = 6
-    // MPC: m = 7-8
-    // etc.
-
-
-    // (8) Evaluate the GFs for all chromosomes. Compare each parent with each child by their GFs to check if
-    // any parent could be identical to any child. If so, mark this child. In addition, compare each child to
-    // the other children by their GFs and mark potentially redundant children,
-    // so that only unique children are left unmarked.
-
-
-    // (9) Sort all chromosomes that are not marked, so that the best chromosomes (new parents) end up at the
-    // top of the matrix, i.e., m = 0 ... P-1. Marking is important to maintain the diversity of the parents,
-    // so that no two parents turn out to be identical (i.e., to have identical chromosomes).
-
-
-    // (10) Repeat steps (6)-(9) until the chromosome with the best GF value (i.e., the lowest) for each
-    // generation shows in average to be lower than 70% of the best chromosome at start.
 }
