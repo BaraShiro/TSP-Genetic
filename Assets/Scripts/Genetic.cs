@@ -200,6 +200,63 @@ public class Genetic
         }
     }
 
+    private void SelectNewParents()
+    {
+        CalculateScores();
+
+        // Mark all redundant children
+        bool[] markedChildren = new bool[NumberOfChromosomes];
+        int numberOfMarkedChildren = 0;
+
+        // Compare parents to children, marking identical children
+        for (int i = 0; i < NumberOfParents; i++)
+        {
+            for (int j = NumberOfParents; j < NumberOfChromosomes; j++)
+            {
+                if (Mathf.Approximately(scores[i], scores[j])) // Approximate to compensate for float inaccuracy
+                {
+                    if(markedChildren[j]) continue; // already marked so don't mark again
+                    markedChildren[j] = true;
+                    numberOfMarkedChildren++;
+                }
+            }
+        }
+
+        // Compare children to children, marking identical children
+        for (int i = NumberOfParents; i < NumberOfChromosomes - 1; i++)
+        {
+            for (int j = i + 1; j < NumberOfChromosomes; j++)
+            {
+                if (Mathf.Approximately(scores[i], scores[j])) // Approximate to compensate for float inaccuracy
+                {
+                    if(markedChildren[j]) continue; // already marked so don't mark again
+                    markedChildren[j] = true;
+                    numberOfMarkedChildren++;
+                }
+            }
+        }
+
+        int[] sortedUnmarkedChromosomes = new int[NumberOfChromosomes - numberOfMarkedChildren];
+        int numberOfsortedUnmarkedChromosomes = 0;
+        for (int i = 0; i < NumberOfChromosomes; i++)
+        {
+            if (!markedChildren[i])
+            {
+                sortedUnmarkedChromosomes[numberOfsortedUnmarkedChromosomes] = i;
+                numberOfsortedUnmarkedChromosomes++;
+            }
+        }
+        Array.Sort(sortedUnmarkedChromosomes, (a, b) => scores[a].CompareTo(scores[b]));
+
+        for (int i = 0; i < NumberOfParents; i++)
+        {
+            if (i >= numberOfsortedUnmarkedChromosomes) break; // We have a lot of marked children, not good
+            SwapChromosomes(i, sortedUnmarkedChromosomes[i]);
+        }
+
+    }
+
+
     private void SwapChromosomes(int first, int second)
     {
         if (first == second) return; // Same index, no need to swap
