@@ -6,6 +6,7 @@ using UnityEngine;
 public class Genetic
 {
     private float bestScoreAtStart = float.PositiveInfinity;
+    private float bestScoreThisGeneration = float.PositiveInfinity;
     private float[] scores;
     private int NumberOfChromosomes { get; set; }
     private int NumberOfCities { get; set; }
@@ -45,6 +46,22 @@ public class Genetic
             scores[i] = score;
             if (score < bestScoreAtStart) bestScoreAtStart = score;
         }
+    }
+
+    private void CalculateScores()
+    {
+        for (int i = 0; i < NumberOfChromosomes; i++)
+        {
+            float score = GoalFunction(GenePool[i]);
+            scores[i] = score;
+            if (score < bestScoreThisGeneration) bestScoreThisGeneration = score;
+        }
+        Debug.Log($"Best score this generation: {bestScoreThisGeneration}");
+    }
+
+    private float CalculateGenerationProportionalScore()
+    {
+        return 100 * (bestScoreThisGeneration / bestScoreAtStart);
     }
 
     private void SelectParents()
