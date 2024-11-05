@@ -10,7 +10,13 @@ public class Genetic
 
     private float bestScoreAtStart = float.PositiveInfinity;
     private float bestScoreThisGeneration = float.PositiveInfinity;
+    private int[] bestChromosomeThisGeneration;
     private float[] scores;
+
+    public float BestScoreAtStart => bestScoreAtStart;
+    public float BestScore => bestScoreThisGeneration;
+    public int[] BestChromosome => bestChromosomeThisGeneration;
+
     private int NumberOfChromosomes { get; set; }
     private int NumberOfCities { get; set; }
     private int ChromosomeLength => NumberOfCities - 1;
@@ -74,6 +80,7 @@ public class Genetic
 
     private void InitializeGenePool()
     {
+        bestChromosomeThisGeneration = new int[ChromosomeLength];
         scores = new float[NumberOfChromosomes];
         for (int i = 0; i < NumberOfChromosomes; i++)
         {
@@ -89,12 +96,19 @@ public class Genetic
 
     private void CalculateScores()
     {
+        int bestChromosomeIndex = 0;
         for (int i = 0; i < NumberOfChromosomes; i++)
         {
             float score = GoalFunction(GenePool[i]);
             scores[i] = score;
-            if (score < bestScoreThisGeneration) bestScoreThisGeneration = score;
+            if (score < bestScoreThisGeneration)
+            {
+                bestScoreThisGeneration = score;
+                bestChromosomeIndex = i;
+            }
         }
+
+        GenePool[bestChromosomeIndex].CopyTo(bestChromosomeThisGeneration, 0);
     }
 
     private void SelectParents()
