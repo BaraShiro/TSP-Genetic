@@ -10,7 +10,7 @@ public class SeedInput : MonoBehaviour
     private SHA1 hashAlgorithm;
     private TMP_InputField input;
 
-    public int SeedHash { get; private set; }
+    public uint SeedHash { get; private set; }
 
     private void Awake()
     {
@@ -31,8 +31,8 @@ public class SeedInput : MonoBehaviour
         SeedHash = ComputeHash(input.text);
     }
 
-    private int ComputeHash(string seed)
+    private uint ComputeHash(string seed)
     {
-        return BitConverter.ToInt32(hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(seed)));
+        return BitConverter.ToUInt32(hashAlgorithm.ComputeHash(Encoding.UTF8.GetBytes(seed)));
     }
 }

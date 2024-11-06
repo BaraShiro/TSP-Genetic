@@ -1,12 +1,7 @@
-using System;
 using System.Collections.Generic;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
-using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using Random = UnityEngine.Random;
 
 public class Spawner : MonoBehaviour
 {
@@ -14,6 +9,7 @@ public class Spawner : MonoBehaviour
     [SerializeField] private GameObject cityPrefab;
     [SerializeField] private Slider numberOfCitiesSlider;
     [SerializeField] private SeedInput seedInput;
+    [SerializeField] private FancyUIButton solveButton;
 
     private int numberOfCities = 0;
     // private Vector3[] positions = Array.Empty<Vector3>();
@@ -26,7 +22,8 @@ public class Spawner : MonoBehaviour
 
     public void SetupCities()
     {
-        Random.InitState(seedInput.SeedHash);
+        RNG.Instance.InitState(seedInput.SeedHash);
+
         numberOfCities = Mathf.RoundToInt(numberOfCitiesSlider.value);
         foreach (City city in cities)
         {
@@ -38,7 +35,7 @@ public class Spawner : MonoBehaviour
         // positions = new Vector3[numberOfCities];
         for (int i = 0; i < numberOfCities; i++)
         {
-            Vector3 pos = new Vector3(Random.Range(-4f, 4f), Random.Range(-4f, 4f), 0);
+            Vector3 pos = new Vector3(RNG.Instance.Range(-4f, 4f), RNG.Instance.Range(-4f, 4f), 0);
             pos += transform.position;
             // positions[i] = pos;
             GameObject cityGameObject = Instantiate(cityPrefab, pos, Quaternion.identity, transform);
@@ -49,11 +46,18 @@ public class Spawner : MonoBehaviour
         }
     }
 
-    public void Solve()
+    public async void Solve()
     {
+        RNG.Instance.InitState(seedInput.SeedHash);
+
+        solveButton.interactable = false;
+
         Genetic genetic = new Genetic(200, cities.ToArray());
 
-        genetic.Solve();
+        await Task.Run(() =>
+        {
+            genetic.Solve();
+        });
 
         int[] best = genetic.BestChromosome;
         Vector3[] positions = new Vector3[best.Length + 1];
@@ -63,10 +67,9 @@ public class Spawner : MonoBehaviour
         }
         positions[^1] = cities[^1].Coordinates;
 
-
         lineRenderer.positionCount = numberOfCities;
         lineRenderer.SetPositions(positions);
+
+        solveButton.interactable = true;
     }
-
-
 }

@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using Random = UnityEngine.Random;
 using UnityEngine;
 
 public class Genetic
@@ -123,6 +122,12 @@ public class Genetic
         {
             SwapChromosomes(i, sortedChromosomes[i]);
         }
+
+        // TODO: Test identical parents with seed
+
+        Debug.Log($"GenePool after: {GenePoolToString()}");
+        Debug.Log($"Sorted indices: {sortedChromosomes.ToPrettyString()}");
+        Debug.Log($"Scores: {scores.ToPrettyString()}");
     }
 
     private bool CheckForIdenticalParents()
@@ -156,6 +161,7 @@ public class Genetic
             CopyChromosome(parentIndex, i);
             parentIndex = (parentIndex + 1) % NumberOfParents;
         }
+        Debug.Log($"GenePool children: {GenePoolToString()}");
     }
 
     private void MutateChildren()
@@ -167,7 +173,7 @@ public class Genetic
             if (NumberOfChromosomes - i >= 2)
             {
                 // If mpcProbability apply MPC, increment i, and continue
-                if (Random.value < mpcProbability)
+                if (RNG.Instance.Value < mpcProbability)
                 {
                     MultiPointCrossover(i, ++i);
                     continue;
@@ -180,23 +186,28 @@ public class Genetic
 
     private void MultiPointCrossover(int first, int second)
     {
+        Debug.Log($"MPC {first} & {second} before: {GenePool[first].ToPrettyString()} {GenePool[second].ToPrettyString()}");
         (int start, int interval) = GetMpcInterval();
+        Debug.Log($"Start {start}, Interval {interval}");
 
         for (int i = start; i < start + interval; i++)
         {
             (GenePool[first][i], GenePool[second][i]) = (GenePool[second][i], GenePool[first][i]);
         }
+        Debug.Log($"MPC {first} & {second} after: {GenePool[first].ToPrettyString()} {GenePool[second].ToPrettyString()}");
 
         RepairChromosome(first, start, interval);
         RepairChromosome(second, start, interval);
+
+        Debug.Log($"MPC {first} & {second} repaired: {GenePool[first].ToPrettyString()} {GenePool[second].ToPrettyString()}");
     }
 
     private (int start, int interval) GetMpcInterval()
     {
         int minInterval = 2;
         int maxInterval = ChromosomeLength / 2;
-        int interval = Random.Range(minInterval, maxInterval + 1);
-        int start = Random.Range(0, (ChromosomeLength - interval) + 1);
+        int interval = RNG.Instance.Range(minInterval, maxInterval + 1);
+        int start = RNG.Instance.Range(0, (ChromosomeLength - interval) + 1);
 
         return (start, interval);
     }
@@ -263,18 +274,20 @@ public class Genetic
     {
         Debug.Log($"Mutate {chromosome} before: {GenePool[chromosome].ToPrettyString()}");
 
-        int first = Random.Range(0, ChromosomeLength);
+        int first = RNG.Instance.Range(0, ChromosomeLength);
         int second = first;
         if (assuredMutation)
         {
-            while (first == second) second = Random.Range(0, ChromosomeLength);
+            while (first == second) second = RNG.Instance.Range(0, ChromosomeLength);
         }
         else
         {
-            second = Random.Range(0, ChromosomeLength);
+            second = RNG.Instance.Range(0, ChromosomeLength);
         }
 
         (GenePool[chromosome][first], GenePool[chromosome][second]) = (GenePool[chromosome][second], GenePool[chromosome][first]);
+
+        Debug.Log($"Mutate {chromosome} after: {GenePool[chromosome].ToPrettyString()}");
     }
 
     private void MutateChromosomeMultiple(int index)
@@ -282,9 +295,9 @@ public class Genetic
         float mutationProbability = 0.2f;
         for (int i = 0; i < ChromosomeLength; i++)
         {
-            if (Random.value < mutationProbability)
+            if (RNG.Instance.Value < mutationProbability)
             {
-                int j = Random.Range(0, ChromosomeLength);
+                int j = RNG.Instance.Range(0, ChromosomeLength);
                 (GenePool[index][i], GenePool[index][j]) = (GenePool[index][j], GenePool[index][i]);
             }
         }
@@ -326,6 +339,10 @@ public class Genetic
             }
         }
 
+        Debug.Log($"GenePool: {GenePoolToString()}");
+        Debug.Log($"Scores: {scores.ToPrettyString()}");
+        Debug.Log($"Marked children: ({numberOfMarkedChildren}) {markedChildren.ToPrettyString()}");
+
         int[] sortedUnmarkedChromosomes = new int[NumberOfChromosomes - numberOfMarkedChildren];
         int numberOfsortedUnmarkedChromosomes = 0;
         for (int i = 0; i < NumberOfChromosomes; i++)
@@ -338,12 +355,15 @@ public class Genetic
         }
         Array.Sort(sortedUnmarkedChromosomes, (a, b) => scores[a].CompareTo(scores[b]));
 
+        Debug.Log($"Sorted unmarked: {sortedUnmarkedChromosomes.ToPrettyString()}");
+
         for (int i = 0; i < NumberOfParents; i++)
         {
             if (i >= numberOfsortedUnmarkedChromosomes) break; // We have a lot of marked children, not good
             SwapChromosomes(i, sortedUnmarkedChromosomes[i]);
         }
 
+        Debug.Log($"GenePool with new parents: {GenePoolToString()}");
     }
 
 

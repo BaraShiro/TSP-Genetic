@@ -26,7 +26,7 @@ public static class ArrayExtensions
         int n = array.Length;
         for (int i = 0; i < n; i++)
         {
-            int j = Random.Range(i, n);
+            int j = RNG.Instance.Range(i, n);
             (array[i], array[j]) = (array[j], array[i]);
         }
     }
