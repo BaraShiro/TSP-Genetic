@@ -2,6 +2,9 @@ using System.Collections.Generic;
 
 public static partial class WordList
 {
+    /// <summary>
+    /// A lotta words.
+    /// </summary>
     private static List<string> Words = new List<string>(NumberOfWords)
     {
         "aardvark",

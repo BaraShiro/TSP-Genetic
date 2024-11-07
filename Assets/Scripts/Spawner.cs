@@ -3,6 +3,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Instantiates the city sprites and lines, takes in the settings, starts the solver, and outputs the result.
+/// </summary>
 public class Spawner : MonoBehaviour
 {
     [SerializeField] private LineRenderer lineRendererPrefab;
@@ -19,6 +22,10 @@ public class Spawner : MonoBehaviour
     [SerializeField] private FancyUIButton solveButton;
     [SerializeField] private TMP_Text solveText;
 
+    /// <summary>
+    /// Cities can't be closer that this.
+    /// Sprites are 64 px, at 100 px per unit and some margin in the graphics, sprites will never touch.
+    /// </summary>
     private const float SmallestTownProximity = 0.6f;
 
     private int numberOfCities;
@@ -32,6 +39,11 @@ public class Spawner : MonoBehaviour
         ResetSolveText();
     }
 
+    /// <summary>
+    /// Instantiates <see cref="numberOfCities"/> number of city sprites,
+    /// placing them randomly and making sure they are not to close together,
+    /// and saves them in <see cref="cities"/>.
+    /// </summary>
     public void SetupCities()
     {
         RNG.Instance.InitState(seedInput.SeedHash);
@@ -75,12 +87,18 @@ public class Spawner : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Sets up and starts the solver, outputting the result.
+    /// </summary>
     public async void Solve()
     {
+        // Inactivate button until done so one doesn't "accidentally" start a bunch of solvers on the background thread.
         solveButton.interactable = false;
+
         UndrawLines();
         ResetSolveText();
 
+        // Re-init RNG to get more reliable results
         RNG.Instance.InitState(seedInput.SeedHash);
 
         Genetic.GeneticSettings settings = new Genetic.GeneticSettings(
@@ -98,13 +116,7 @@ public class Spawner : MonoBehaviour
 
         await genetic.Solve();
 
-        int[] best = genetic.BestChromosome;
-        Vector3[] positions = new Vector3[best.Length + 1];
-        for (int i = 0; i < best.Length; i++)
-        {
-            positions[i] = cities[best[i]].Coordinates;
-        }
-        positions[^1] = cities[^1].Coordinates;
+        Vector3[] positions = CalculatePositions(genetic.BestChromosome);
 
         DrawLines(positions);
 
@@ -116,6 +128,25 @@ public class Spawner : MonoBehaviour
         solveButton.interactable = true;
     }
 
+    /// <summary>
+    /// Calculates the best path based on the order of positions in bestChromosome.
+    /// </summary>
+    /// <param name="bestChromosome">A chromosome that contains the order of cities to visit.</param>
+    /// <returns>A list of positions that when visited in order makes up the calculated path.</returns>
+    private Vector3[] CalculatePositions(int[] bestChromosome)
+    {
+        Vector3[] positions = new Vector3[bestChromosome.Length + 1];
+        for (int i = 0; i < bestChromosome.Length; i++)
+        {
+            positions[i] = cities[bestChromosome[i]].Coordinates;
+        }
+        positions[^1] = cities[^1].Coordinates;
+        return positions;
+    }
+
+    /// <summary>
+    /// Removes all lines.
+    /// </summary>
     private void UndrawLines()
     {
         foreach (LineRenderer line in lineRenderers)
@@ -125,6 +156,11 @@ public class Spawner : MonoBehaviour
         lineRenderers.Clear();
     }
 
+    /// <summary>
+    /// Draws lines between all neighboring positions in <paramref name="positions"/>,
+    /// creating a loop by connecting the end to the beginning.
+    /// </summary>
+    /// <param name="positions">The positions to draw lines between.</param>
     private void DrawLines(Vector3[] positions)
     {
         for (int i = 0; i < positions.Length; i++)
@@ -137,6 +173,9 @@ public class Spawner : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Resets the output text to the default.
+    /// </summary>
     private void ResetSolveText()
     {
         solveText.text = $"Initial score: \n" +

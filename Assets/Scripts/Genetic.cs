@@ -63,7 +63,7 @@ public class Genetic
         }
     }
 
-    private const bool LogDebug = false;
+    private const bool LogDebug = false; // Set to true for debug logging (it's A LOT)
 
     private float bestScoreAtStart = float.PositiveInfinity;
     private float bestScoreThisGeneration = float.PositiveInfinity;
@@ -88,15 +88,12 @@ public class Genetic
     private int[][] GenePool { get; set; }
     private City[] Cities { get; set; }
 
-    public Genetic(GeneticSettings settings)
-    {
-        Settings = settings;
-
-        GenePool = new int[Settings.NumberOfChromosomes][];
-        Cities = new City[Settings.NumberOfCities];
-        Cities.FillWithNew();
-    }
-
+    /// <summary>
+    /// Construct a new <see cref="Genetic"/> object,
+    /// representing a traveling salesman problem and a genetic algorithm solver.
+    /// </summary>
+    /// <param name="settings">The settings for this tour.</param>
+    /// <param name="cities">The cities of this tour.</param>
     public Genetic(GeneticSettings settings, City[] cities)
     {
         Settings = settings;
@@ -105,6 +102,16 @@ public class Genetic
         Cities = cities;
     }
 
+    /// <summary>
+    /// The genetic algorithm solver for TSP.
+    /// It stops trying if it scores equal or below <see cref="GeneticSettings.PercentageOfInitialToStopAt"/>,
+    /// alternative when the number of generations without further progress is equal or greater to
+    /// <see cref="GeneticSettings.GenerationsWithoutProgressToStopAt"/>.
+    /// </summary>
+    /// <remarks>
+    /// Runs on the background thread as to not block the main thread, except when building for WebGL.
+    /// When building for WebGL, it instead runs one generation per frame, which is good enough on a decent computer.
+    /// </remarks>
     public async Awaitable Solve()
     {
         #if !UNITY_WEBGL
@@ -146,6 +153,7 @@ public class Genetic
 
             percentageOfStartScore = 100 * (bestScoreThisGeneration / bestScoreAtStart);
             if(LogDebug) Debug.Log($"Generation: {generation}, Best score this generation: {bestScoreThisGeneration} ({percentageOfStartScore:000.00}%)");
+
             if (lastGenerationsScore <= bestScoreThisGeneration)
             {
                 generationsWithoutProgress++;
@@ -176,6 +184,9 @@ public class Genetic
         #endif
     }
 
+    /// <summary>
+    /// Initializes the gene pool with random values and calculates the initial score.
+    /// </summary>
     private void InitializeGenePool()
     {
         bestChromosomeThisGeneration = new int[ChromosomeLength];
@@ -192,6 +203,9 @@ public class Genetic
         if(LogDebug) Debug.Log($"Best score at start: {bestScoreAtStart}");
     }
 
+    /// <summary>
+    /// Calculates the score for the current generation, and copies the best performing chromosome.
+    /// </summary>
     private void CalculateScores()
     {
         int bestChromosomeIndex = 0;
@@ -209,6 +223,9 @@ public class Genetic
         GenePool[bestChromosomeIndex].CopyTo(bestChromosomeThisGeneration, 0);
     }
 
+    /// <summary>
+    /// Select the best performing chromosomes to be the parents of the next generation.
+    /// </summary>
     private void SelectParents()
     {
         int[] sortedChromosomes = Enumerable.Range(0, Settings.NumberOfChromosomes).ToArray();
@@ -222,13 +239,17 @@ public class Genetic
             SwapChromosomes(i, sortedChromosomes[i]);
         }
 
-        // TODO: Test identical parents with seed
+        // TODO: Handle identical parents gracefully
 
         if(LogDebug) Debug.Log($"GenePool after: {GenePoolToString()}");
         if(LogDebug) Debug.Log($"Sorted indices: {sortedChromosomes.ToPrettyString()}");
         if(LogDebug) Debug.Log($"Scores: {scores.ToPrettyString()}");
     }
 
+    /// <summary>
+    /// Make sure there are no identical parents, as this degrades the result.
+    /// </summary>
+    /// <returns>True if there are identical parents, otherwise false.</returns>
     private bool CheckForIdenticalParents()
     {
         // Look for identical scores to find identical parents
@@ -252,6 +273,9 @@ public class Genetic
         return false;
     }
 
+    /// <summary>
+    /// Copy parents to other chromosomes.
+    /// </summary>
     private void ProduceChildren()
     {
         int parentIndex = 0;
@@ -263,9 +287,11 @@ public class Genetic
         if(LogDebug) Debug.Log($"GenePool children: {GenePoolToString()}");
     }
 
+    /// <summary>
+    /// Mutate children with either MPC, single mutation, or multiple mutation.
+    /// </summary>
     private void MutateChildren()
     {
-        // float mpcProbability = 0.75f;
         for (int i = NumberOfParents; i < Settings.NumberOfChromosomes; i++)
         {
             // If there are at least two children left
@@ -291,6 +317,11 @@ public class Genetic
         }
     }
 
+    /// <summary>
+    /// Switches a randomly large portion of data between one chromosome and another chromosome.
+    /// </summary>
+    /// <param name="first">The index of the first chromosome.</param>
+    /// <param name="second">The index of the second chromosome.</param>
     private void MultiPointCrossover(int first, int second)
     {
         if(LogDebug) Debug.Log($"MPC {first} & {second} before: {GenePool[first].ToPrettyString()} {GenePool[second].ToPrettyString()}");
@@ -309,6 +340,10 @@ public class Genetic
         if(LogDebug) Debug.Log($"MPC {first} & {second} repaired: {GenePool[first].ToPrettyString()} {GenePool[second].ToPrettyString()}");
     }
 
+    /// <summary>
+    /// Gets a randomly large interval of a chromosome.
+    /// </summary>
+    /// <returns>Two ints, the first representing the start of the interval, and the second the length of the interval.</returns>
     private (int start, int interval) GetMpcInterval()
     {
         int minInterval = 2;
@@ -319,6 +354,13 @@ public class Genetic
         return (start, interval);
     }
 
+    /// <summary>
+    /// Repairs a chromosome that has had a portion of data switched with another,
+    /// by looking for identical data and replacing it with missing data.
+    /// </summary>
+    /// <param name="chromosome">The index of the chromosome to repair</param>
+    /// <param name="start">The start of the interval where the data was switched.</param>
+    /// <param name="interval">The length of the interval where the data was switched.</param>
     private void RepairChromosome(int chromosome, int start, int interval)
     {
         // Replace each duplicate number outside crossover interval with -1 and save its position in duplicates
@@ -377,6 +419,12 @@ public class Genetic
         }
     }
 
+    /// <summary>
+    /// Mutates a chromosome by randomly switching two points of data.
+    /// </summary>
+    /// <param name="chromosome">The index of the chromosome to mutate.</param>
+    /// <param name="assuredMutation">If true, makes sure the two random points are different,
+    /// otherwise just picks two random points that could be the same.</param>
     private void MutateChromosomeSingle(int chromosome, bool assuredMutation = true)
     {
         if(LogDebug) Debug.Log($"Mutate {chromosome} before: {GenePool[chromosome].ToPrettyString()}");
@@ -397,8 +445,13 @@ public class Genetic
         if(LogDebug) Debug.Log($"Mutate {chromosome} after: {GenePool[chromosome].ToPrettyString()}");
     }
 
+    /// <summary>
+    /// Iterates over all data in the chromosome, randomly switching it with other random data.
+    /// </summary>
+    /// <param name="chromosome">The index of the chromosome to mutate.</param>
     private void MutateChromosomeMultiple(int chromosome)
     {
+        // If there's no probability of a mutation happening, there's no point in iterating over the chromosome.
         if (Settings.MultiMutationMutationProbability <= 0) return;
 
         if(LogDebug) Debug.Log($"Multi mutate {chromosome} before: {GenePool[chromosome].ToPrettyString()}");
@@ -413,6 +466,9 @@ public class Genetic
         if(LogDebug) Debug.Log($"Multi mutate {chromosome} after: {GenePool[chromosome].ToPrettyString()}");
     }
 
+    /// <summary>
+    /// Select new parents from the best performing unique children.
+    /// </summary>
     private void SelectNewParents()
     {
         CalculateScores();
@@ -477,6 +533,11 @@ public class Genetic
     }
 
 
+    /// <summary>
+    /// Swap places of two chromosomes.
+    /// </summary>
+    /// <param name="first">The first chromosome to swap.</param>
+    /// <param name="second">The second chromosome to swap.</param>
     private void SwapChromosomes(int first, int second)
     {
         if (first == second) return; // Same index, no need to swap
@@ -484,6 +545,11 @@ public class Genetic
         (GenePool[first], GenePool[second]) = (GenePool[second], GenePool[first]);
     }
 
+    /// <summary>
+    /// Copy a chromosome to another chromosome, overwriting it.
+    /// </summary>
+    /// <param name="source">The chromosome to copy.</param>
+    /// <param name="destination">The chromosome to overwrite.</param>
     private void CopyChromosome(int source, int destination)
     {
         if (source == destination) return; // Same index, no need to copy
@@ -494,6 +560,10 @@ public class Genetic
         }
     }
 
+    /// <summary>
+    /// Produces a pretty string representation of the entire gene pool
+    /// </summary>
+    /// <returns>A string containing pretty strings of all the chromosomes in the <see cref="GenePool"/>.</returns>
     private string GenePoolToString()
     {
         return GenePool.Aggregate("", (current, chromosome) => current + (chromosome.ToPrettyString() + " "));
