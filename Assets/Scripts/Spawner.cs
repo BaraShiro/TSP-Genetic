@@ -19,6 +19,8 @@ public class Spawner : MonoBehaviour
     [SerializeField] private FancyUIButton solveButton;
     [SerializeField] private TMP_Text solveText;
 
+    private const float SmallestTownProximity = 0.6f;
+
     private int numberOfCities;
     private readonly List<City> cities = new List<City>();
     private readonly List<LineRenderer> lineRenderers = new List<LineRenderer>();
@@ -45,13 +47,31 @@ public class Spawner : MonoBehaviour
 
         for (int i = 0; i < numberOfCities; i++)
         {
-            Vector3 pos = new Vector3(RNG.Instance.Range(-4f, 4f), RNG.Instance.Range(-4f, 4f), 0);
-            pos += transform.position;
+            Vector3 pos = default;
+
+            bool cityHasGoodPosition = false;
+            while (!cityHasGoodPosition)
+            {
+                cityHasGoodPosition = true;
+
+                pos = new Vector3(RNG.Instance.Range(-4f, 4f), RNG.Instance.Range(-4f, 4f), 0);
+                pos += transform.position;
+
+                foreach (City city in cities)
+                {
+                    if (Vector2.Distance(pos, city.Coordinates) < SmallestTownProximity)
+                    {
+                        cityHasGoodPosition = false;
+                        break;
+                    }
+                }
+            }
+
             GameObject cityGameObject = Instantiate(cityPrefab, pos, Quaternion.identity, transform);
             cityGameObject.AddComponent<City>();
-            City city = cityGameObject.GetComponent<City>();
-            city.Coordinates = pos;
-            cities.Add(city);
+            City newCity = cityGameObject.GetComponent<City>();
+            newCity.Coordinates = pos;
+            cities.Add(newCity);
         }
     }
 
