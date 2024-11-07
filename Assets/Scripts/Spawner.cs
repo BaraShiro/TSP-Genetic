@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 public class Spawner : MonoBehaviour
 {
-    [SerializeField] private LineRenderer lineRenderer;
+    [SerializeField] private LineRenderer lineRendererPrefab;
     [SerializeField] private GameObject cityPrefab;
     [SerializeField] private SeedInput seedInput;
     [SerializeField] private Slider numberOfCitiesSlider;
@@ -21,11 +21,12 @@ public class Spawner : MonoBehaviour
 
     private int numberOfCities;
     private readonly List<City> cities = new List<City>();
+    private readonly List<LineRenderer> lineRenderers = new List<LineRenderer>();
 
     private void Start()
     {
         SetupCities();
-        UndrawLine();
+        UndrawLines();
         ResetSolveText();
     }
 
@@ -39,7 +40,7 @@ public class Spawner : MonoBehaviour
             Destroy(city.gameObject);
         }
         cities.Clear();
-        UndrawLine();
+        UndrawLines();
         ResetSolveText();
 
         for (int i = 0; i < numberOfCities; i++)
@@ -57,7 +58,7 @@ public class Spawner : MonoBehaviour
     public async void Solve()
     {
         solveButton.interactable = false;
-        UndrawLine();
+        UndrawLines();
         ResetSolveText();
 
         RNG.Instance.InitState(seedInput.SeedHash);
@@ -85,7 +86,7 @@ public class Spawner : MonoBehaviour
         }
         positions[^1] = cities[^1].Coordinates;
 
-        DrawLine(positions);
+        DrawLines(positions);
 
         solveText.text = $"Initial score: {genetic.BestScoreAtStart:0.00}\n" +
                          $"Best score: {genetic.BestScore:0.00} ({genetic.PercentageOfInitialScore:0.00}% of initial)\n" +
@@ -95,15 +96,25 @@ public class Spawner : MonoBehaviour
         solveButton.interactable = true;
     }
 
-    private void UndrawLine()
+    private void UndrawLines()
     {
-        lineRenderer.positionCount = 0;
+        foreach (LineRenderer line in lineRenderers)
+        {
+            Destroy(line.gameObject);
+        }
+        lineRenderers.Clear();
     }
 
-    private void DrawLine(Vector3[] positions)
+    private void DrawLines(Vector3[] positions)
     {
-        lineRenderer.positionCount = numberOfCities;
-        lineRenderer.SetPositions(positions);
+        for (int i = 0; i < positions.Length; i++)
+        {
+            LineRenderer line = Instantiate(lineRendererPrefab, transform.position, Quaternion.identity, transform);
+            line.positionCount = 2;
+            line.SetPosition(0, positions[i]);
+            line.SetPosition(1, positions[i + 1 < positions.Length ? i + 1 : 0]);
+            lineRenderers.Add(line);
+        }
     }
 
     private void ResetSolveText()
