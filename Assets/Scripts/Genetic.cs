@@ -107,7 +107,9 @@ public class Genetic
 
     public async Awaitable Solve()
     {
+        #if !UNITY_WEBGL
         await Awaitable.BackgroundThreadAsync();
+        #endif
 
         Application.exitCancellationToken.ThrowIfCancellationRequested();
 
@@ -123,6 +125,10 @@ public class Genetic
             SelectParents();
             identicalParents = CheckForIdenticalParents();
         }
+
+        #if UNITY_WEBGL
+        await Awaitable.EndOfFrameAsync(Application.exitCancellationToken);
+        #endif
 
         float percentageOfStartScore = float.PositiveInfinity;
         float lastGenerationsScore = float.PositiveInfinity;
@@ -156,12 +162,18 @@ public class Genetic
             }
 
             lastGenerationsScore = bestScoreThisGeneration;
+
+            #if UNITY_WEBGL
+            await Awaitable.EndOfFrameAsync(Application.exitCancellationToken);
+            #endif
         }
 
         timer.Stop();
         elapsedTime = timer.Elapsed.TotalMilliseconds;
 
+        #if !UNITY_WEBGL
         await Awaitable.MainThreadAsync();
+        #endif
     }
 
     private void InitializeGenePool()
