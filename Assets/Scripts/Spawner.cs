@@ -1,7 +1,4 @@
 using System.Collections.Generic;
-#if !UNITY_WEBGL
-using System.Threading.Tasks;
-#endif
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -78,16 +75,7 @@ public class Spawner : MonoBehaviour
 
         Genetic genetic = new Genetic(settings, cities.ToArray());
 
-#if UNITY_WEBGL
-        // No support for Threading.Task on WebGL, so we have to run synchronously and block the main thread
-        genetic.Solve();
-#else
-        await Task.Run(() =>
-        {
-            Debug.Log("In task run");
-            genetic.Solve();
-        });
-#endif
+        await genetic.Solve();
 
         int[] best = genetic.BestChromosome;
         Vector3[] positions = new Vector3[best.Length + 1];
@@ -120,6 +108,9 @@ public class Spawner : MonoBehaviour
 
     private void ResetSolveText()
     {
-        solveText.text = "";
+        solveText.text = $"Initial score: \n" +
+                         $"Best score: \n" +
+                         $"Evolved for \n" +
+                         $"Solution generated in ";
     }
 }

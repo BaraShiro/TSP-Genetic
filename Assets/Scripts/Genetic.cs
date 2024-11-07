@@ -69,7 +69,7 @@ public class Genetic
     private float bestScoreThisGeneration = float.PositiveInfinity;
     private int[] bestChromosomeThisGeneration;
     private float[] scores;
-    private int generation = 1;
+    private int generation = 0;
     private int generationsWithoutProgress = 0;
     private double elapsedTime;
 
@@ -105,14 +105,20 @@ public class Genetic
         Cities = cities;
     }
 
-    public void Solve()
+    public async Awaitable Solve()
     {
+        await Awaitable.BackgroundThreadAsync();
+
+        Application.exitCancellationToken.ThrowIfCancellationRequested();
+
         Stopwatch timer = new Stopwatch();
         timer.Start();
 
         bool identicalParents = true;
         while (identicalParents)
         {
+            Application.exitCancellationToken.ThrowIfCancellationRequested();
+
             InitializeGenePool();
             SelectParents();
             identicalParents = CheckForIdenticalParents();
@@ -123,6 +129,10 @@ public class Genetic
 
         while (percentageOfStartScore >= Settings.PercentageOfInitialToStopAt)
         {
+            Application.exitCancellationToken.ThrowIfCancellationRequested();
+
+            generation++;
+
             if(LogDebug) Debug.Log($"percentage of initial score: {percentageOfStartScore}, percentage of score to stop at {Settings.PercentageOfInitialToStopAt / 100}");
             ProduceChildren();
             MutateChildren();
@@ -130,19 +140,28 @@ public class Genetic
 
             percentageOfStartScore = 100 * (bestScoreThisGeneration / bestScoreAtStart);
             if(LogDebug) Debug.Log($"Generation: {generation}, Best score this generation: {bestScoreThisGeneration} ({percentageOfStartScore:000.00}%)");
-            if (Mathf.Approximately(lastGenerationsScore, bestScoreThisGeneration)) generationsWithoutProgress++;
+            if (lastGenerationsScore <= bestScoreThisGeneration)
+            {
+                generationsWithoutProgress++;
+            }
+            else
+            {
+                generationsWithoutProgress = 0;
+            }
+
             if (generationsWithoutProgress >= Settings.GenerationsWithoutProgressToStopAt)
             {
                 if(LogDebug) Debug.Log($"No progress made in {Settings.GenerationsWithoutProgressToStopAt} generations, giving up.");
                 break;
             }
 
-            generation++;
             lastGenerationsScore = bestScoreThisGeneration;
         }
 
         timer.Stop();
         elapsedTime = timer.Elapsed.TotalMilliseconds;
+
+        await Awaitable.MainThreadAsync();
     }
 
     private void InitializeGenePool()
